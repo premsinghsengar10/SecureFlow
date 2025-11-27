@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - email-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - email-net
+
+  ml-service:
+    build: ./ml-service
+    ports:
+      - "8000:8000"
+    networks:
+      - email-net
+
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    networks:
+      - email-net
+    depends_on:
+      - rabbitmq
+      - mongodb
+      - ml-service
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_DATA_MONGODB_HOST=mongodb
+      - ML_SERVICE_URL=http://ml-service:8000
+
+networks:
+  email-net:
+    driver: bridge
+
+volumes:
+  mongo_data:
